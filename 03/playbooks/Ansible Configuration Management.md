@@ -69,7 +69,7 @@ These are the public IPs from the successful Phase 1 deployment. They can change
 | Jenkins | `35.255.7.56` | `jenkins` |
 | Docker | `35.225.115.138` | `docker` |
 | Monitoring | `136.114.122.132` | `monitoring` |
-| SonarQube | `34.66.36.10` | `sonar` |
+| SonarQube | `34.66.36.10` | `sonarqube` |
 
 ---
 
@@ -141,16 +141,16 @@ The inventory groups are:
 
 ```ini
 [docker]
-35.225.115.138
+35.225.115.138 ansible_user=docker
 
 [monitoring]
-136.114.122.132
+136.114.122.132 ansible_user=monitoring
 
-[sonar]
-34.66.36.10
+[sonarqube]
+34.66.36.10 ansible_user=sonarqube
 
 [jenkins]
-35.255.7.56
+35.255.7.56 ansible_user=ansible
 ```
 
 The Jenkins group is named `jenkins` so that it matches the Jenkins playbook.
@@ -327,7 +327,7 @@ The supplied playbook configures:
 Verify:
 
 ```bash
-ansible sonar -a "systemctl is-active sonarqube" --become
+ansible sonarqube -a "systemctl is-active sonarqube" --become
 ```
 
 ---
@@ -381,7 +381,7 @@ ansible jenkins -a "systemctl is-active jenkins" --become
 Check SonarQube:
 
 ```bash
-ansible sonar -a "systemctl is-active sonarqube" --become
+ansible sonarqube -a "systemctl is-active sonarqube" --become
 ```
 
 Check Monitoring:
@@ -606,6 +606,19 @@ Repeat these steps on all four SecureBank servers.
 ---
 
 # 5. Update the Ansible Inventory
+
+## Current SecureBank Ansible Inventory
+
+The current inventory uses a dedicated user for each server:
+
+- Docker VM → `docker`
+- Monitoring VM → `monitoring`
+- SonarQube VM → `sonarqube`
+- Jenkins VM → `ansible`
+
+The current inventory is:
+
+
 
 After creating the new user and verifying SSH access, update `01.hosts`:
 
