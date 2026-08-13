@@ -1,0 +1,58 @@
+---
+- name: Monitoring Server Configuration
+  hosts: monitoring
+  become: yes
+
+  tasks:
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Enable Docker
+      service:
+        name: docker
+        enabled: yes
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+
+    - name: Remove Existing Prometheus
+      shell: docker rm -f prometheus
+      ignore_errors: yes
+
+    - name: Remove Existing Grafana
+      shell: docker rm -f grafana
+      ignore_errors: yes
+
+    - name: Pull Prometheus Image
+      shell: docker pull prom/prometheus
+
+    - name: Run Prometheus
+      shell: |
+        docker run -d \
+        --name prometheus \
+        --restart always \
+        -p 9090:9090 \
+        prom/prometheus
+
+    - name: Pull Grafana Image
+      shell: docker pull grafana/grafana
+
+    - name: Run Grafana
+      shell: |
+        docker run -d \
+        --name grafana \
+        --restart always \
+        -p 3000:3000 \
+        grafana/grafana
+
+    - name: Display Running Containers
+      shell: docker ps
+      register: output
+
+    - debug:
+        var: output.stdout_lines

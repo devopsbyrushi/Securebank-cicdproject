@@ -1,0 +1,121 @@
+---
+- name: Cleanup Lab Environment (Keep Jenkins)
+  hosts: docker,monitoring,sonar
+  become: yes
+
+  tasks:
+
+    - name: Stop Docker Service
+      service:
+        name: docker
+        state: stopped
+      ignore_errors: yes
+
+    - name: Remove Docker Packages
+      apt:
+        name:
+          - docker.io
+          - docker-ce
+          - docker-ce-cli
+          - containerd
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: absent
+        purge: yes
+      ignore_errors: yes
+
+    - name: Remove Docker Directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/docker
+        - /etc/docker
+        - /var/run/docker.sock
+        - /var/lib/containerd
+      ignore_errors: yes
+
+    - name: Remove Prometheus
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/prometheus
+        - /var/lib/prometheus
+        - /usr/local/bin/prometheus
+        - /usr/local/bin/promtool
+        - /etc/systemd/system/prometheus.service
+      ignore_errors: yes
+
+    - name: Remove Node Exporter
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/local/bin/node_exporter
+        - /etc/systemd/system/node_exporter.service
+      ignore_errors: yes
+
+    - name: Stop SonarQube
+      service:
+        name: sonarqube
+        state: stopped
+      ignore_errors: yes
+
+    - name: Stop PostgreSQL
+      service:
+        name: postgresql
+        state: stopped
+      ignore_errors: yes
+
+    - name: Remove SonarQube
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /opt/sonarqube
+        - /opt/sonarqube.zip
+        - /etc/systemd/system/sonarqube.service
+      ignore_errors: yes
+
+    - name: Remove PostgreSQL
+      apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+        state: absent
+        purge: yes
+      ignore_errors: yes
+
+    - name: Remove PostgreSQL Data
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/postgresql
+        - /etc/postgresql
+      ignore_errors: yes
+
+    - name: Remove Java
+      apt:
+        name:
+          - openjdk-21-jdk
+          - openjdk-17-jdk
+          - default-jdk
+        state: absent
+        purge: yes
+      ignore_errors: yes
+
+    - name: Autoremove Packages
+      apt:
+        autoremove: yes
+        purge: yes
+
+    - name: Clean apt Cache
+      apt:
+        autoclean: yes
+
+    - name: Final Message
+      debug:
+        msg: "Cleanup Completed Successfully."

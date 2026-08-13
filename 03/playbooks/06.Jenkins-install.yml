@@ -1,0 +1,178 @@
+---
+- name: Install and Configure Jenkins Server
+  hosts: jenkins
+  become: yes
+  gather_facts: yes
+
+  tasks:
+
+    ########################################################################
+    # UPDATE
+    ########################################################################
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    ########################################################################
+    # JAVA
+    ########################################################################
+
+    - name: Install Java 21
+      apt:
+        name: openjdk-21-jdk
+        state: present
+
+
+    - name: Install Maven
+      apt:
+        name: maven
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Enable Docker
+      service:
+        name: docker
+        enabled: yes
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+
+    - name: Add Jenkins user to Docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: yes
+
+    ########################################################################
+    # JENKINS REPOSITORY
+    ########################################################################
+
+    - name: Install required packages
+      apt:
+        name:
+          - wget
+          - curl
+          - gnupg
+          - ca-certificates
+          - fontconfig
+        state: present
+
+    - name: Create Jenkins keyring directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Download Jenkins GPG key
+      get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+        dest: /etc/apt/keyrings/jenkins-keyring.asc
+        mode: "0644"
+
+    - name: Add Jenkins repository
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+        filename: jenkins
+
+    ########################################################################
+    # INSTALL JENKINS
+    ########################################################################
+
+    - name: Update apt cache after adding Jenkins repository
+      apt:
+        update_cache: yes
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    ########################################################################
+    # JENKINS SERVICE
+    ########################################################################
+
+    - name: Enable Jenkins
+      systemd:
+        name: jenkins
+        enabled: yes
+
+    - name: Start Jenkins
+      systemd:
+        name: jenkins
+        state: started
+
+    ########################################################################
+    # WAIT FOR JENKINS
+    ########################################################################
+
+    - name: Wait for Jenkins port 8080
+      wait_for:
+        port: 8080
+        delay: 10
+        timeout: 300
+
+    ########################################################################
+    # VERIFY
+    ########################################################################
+
+    - name: Check Java version
+      command: java -version
+      register: java_version
+      changed_when: false
+
+    - name: Display Java version
+      debug:
+        var: java_version.stderr_lines
+
+    - name: Check Jenkins service
+      command: systemctl is-active jenkins
+      register: jenkins_status
+      changed_when: false
+
+    - name: Display Jenkins status
+      debug:
+        var: jenkins_status.stdout
+
+    - name: Check Jenkins port
+      shell: ss -lntp | grep ':8080'
+      register: jenkins_port
+      changed_when: false
+
+    - name: Display Jenkins port
+      debug:
+        var: jenkins_port.stdout
+
+    ########################################################################
+    # INITIAL PASSWORD
+    ########################################################################
+
+    - name: Check Jenkins initial admin password
+      stat:
+        path: /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_password_file
+
+    - name: Read Jenkins initial admin password
+      command: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: initial_password
+      changed_when: false
+      when: jenkins_password_file.stat.exists
+
+    - name: Display Jenkins initial admin password
+      debug:
+        msg:
+          - "======================================"
+          - " Jenkins Installation Successful "
+          - " URL: http://{{ inventory_hostname }}:8080"
+          - " Initial Admin Password:"
+          - "{{ initial_password.stdout }}"
+          - "======================================"
+      when: jenkins_password_file.stat.exists

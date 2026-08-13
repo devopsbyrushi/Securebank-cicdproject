@@ -1,0 +1,34 @@
+---
+- name: Docker Server Configuration
+  hosts: docker
+  become: yes
+
+  tasks:
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Enable Docker
+      service:
+        name: docker
+        enabled: yes
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+
+    - name: Add docker user to docker group
+      user:
+        name: docker
+        groups: docker
+        append: yes
+
+    - name: Verify Docker Version
+      command: docker --version
+      register: docker_version
+
+    - debug:
+        var: docker_version.stdout

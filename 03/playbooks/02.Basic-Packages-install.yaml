@@ -1,0 +1,36 @@
+---
+- name: Common Configuration
+  hosts: docker,monitoring,sonar,jenkins
+  become: yes
+
+  tasks:
+
+    - name: Update Apt Cache
+      apt:
+        update_cache: yes
+
+    - name: Upgrade Packages
+      apt:
+        upgrade: dist
+
+    - name: Install Common Packages
+      apt:
+        name:
+          - git
+          - curl
+          - wget
+          - unzip
+          - vim
+          - tree
+          - zip
+          - net-tools
+          - htop
+          - software-properties-common
+        state: present
+
+    - name: Display Hostname
+      command: hostname
+      register: hostname
+
+    - debug:
+        var: hostname.stdout

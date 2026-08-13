@@ -1,0 +1,20 @@
+# SecureBank Phase 2 - Ansible Inventory
+# Project: securebank
+# Project ID: securebankid
+# Region: us-central1
+# Zone: us-central1-a
+#
+# Replace YOUR_GCP_SSH_USER with the Linux username you use to SSH into
+# the SecureBank VMs.
+
+[docker]
+35.225.115.138 ansible_user=YOUR_GCP_SSH_USER
+
+[monitoring]
+136.114.122.132 ansible_user=YOUR_GCP_SSH_USER
+
+[sonar]
+34.66.36.10 ansible_user=YOUR_GCP_SSH_USER
+
+[jenkins]
+35.255.7.56 ansible_user=YOUR_GCP_SSH_USER
