@@ -446,3 +446,244 @@ After successful verification, we can move to the next project phase.
 3. Replace `YOUR_GCP_SSH_USER` with the actual Linux username used for SSH.
 4. The inventory uses the group name `jenkins`; this matches the Jenkins playbook.
 5. Run and verify each playbook separately rather than running every playbook at once.
+
+
+# 4. Create an Additional Ansible User on Each Managed Server
+
+Create a dedicated Ansible user on each SecureBank managed VM:
+
+- Jenkins VM
+- Docker VM
+- SonarQube VM
+- Monitoring VM
+
+## 4.1 Create the New User
+
+SSH to the server using the existing login user:
+
+```bash
+ssh <existing-user>@<server-public-ip>
+```
+
+Create the new user:
+
+```bash
+sudo adduser ansible
+```
+
+Add the user to the sudo group:
+
+```bash
+sudo usermod -aG sudo ansible
+```
+
+Verify:
+
+```bash
+id ansible
+```
+
+## 4.2 Configure SSH
+
+Edit the SSH configuration:
+
+```bash
+sudo vi /etc/ssh/sshd_config
+```
+
+During initial setup, make sure this is enabled:
+
+```text
+PasswordAuthentication yes
+```
+
+Save the file and restart SSH:
+
+```bash
+sudo service ssh restart
+```
+
+Verify:
+
+```bash
+sudo service ssh status
+```
+
+> After passwordless SSH is working, password authentication can be disabled again for better security.
+
+## 4.3 Switch to the New User
+
+```bash
+su - ansible
+```
+
+Verify:
+
+```bash
+whoami
+```
+
+Expected:
+
+```text
+ansible
+```
+
+## 4.4 Generate SSH Keys
+
+While logged in as `ansible`:
+
+```bash
+ssh-keygen
+```
+
+Press **Enter** to accept the default location.
+
+Verify:
+
+```bash
+ls -la ~/.ssh
+```
+
+Display the public key:
+
+```bash
+cat ~/.ssh/id_rsa.pub
+```
+
+## 4.5 Configure Authorized Keys
+
+Create the SSH directory if required:
+
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+```
+
+Edit:
+
+```bash
+vi ~/.ssh/authorized_keys
+```
+
+Add the required public key and save.
+
+Set permissions:
+
+```bash
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Verify:
+
+```bash
+ls -ld ~/.ssh
+ls -l ~/.ssh/authorized_keys
+```
+
+## 4.6 Test the New User
+
+From the Ansible Controller:
+
+```bash
+ssh ansible@<server-public-ip>
+```
+
+Verify:
+
+```bash
+whoami
+```
+
+Expected:
+
+```text
+ansible
+```
+
+Repeat these steps on all four SecureBank servers.
+
+---
+
+# 5. Update the Ansible Inventory
+
+After creating the new user and verifying SSH access, update `01.hosts`:
+
+```ini
+[docker]
+35.225.115.138 ansible_user=ansible
+
+[monitoring]
+136.114.122.132 ansible_user=ansible
+
+[sonar]
+34.66.36.10 ansible_user=ansible
+
+[jenkins]
+35.255.7.56 ansible_user=ansible
+```
+
+Test Ansible connectivity:
+
+```bash
+ansible all -m ping
+```
+
+Expected result:
+
+```text
+SUCCESS
+```
+
+for all four servers.
+
+---
+
+# 6. Configure Passwordless Sudo
+
+Because the installation playbooks use:
+
+```yaml
+become: yes
+```
+
+configure passwordless sudo for the Ansible user.
+
+On each server:
+
+```bash
+sudo visudo
+```
+
+Add:
+
+```text
+ansible ALL=(ALL) NOPASSWD:ALL
+```
+
+Verify:
+
+```bash
+sudo -l
+```
+
+From the Ansible Controller, test:
+
+```bash
+ansible all -m command -a "whoami"
+```
+
+Then test privileged execution:
+
+```bash
+ansible all -m command -a "whoami" --become
+```
+
+The second command should execute as:
+
+```text
+root
+```
+
+---
+
