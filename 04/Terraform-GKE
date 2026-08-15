@@ -1,0 +1,447 @@
+````md
+# SecureBank GKE Terraform Deployment Guide
+
+## Project Overview
+
+This Terraform project deploys a Google Kubernetes Engine (GKE) cluster for the SecureBank CI/CD platform.
+
+The deployment uses:
+
+- Existing VPC: `securebank-vpc`
+- Existing Subnet: `securebank-subnet`
+- Region: `us-central1`
+- Zone: `us-central1-a`
+- GKE Cluster: `securebank-gke`
+- Node Pool: `securebank-node-pool`
+- Node Count: 2
+- Machine Type: `e2-medium`
+
+---
+
+# Existing SecureBank Infrastructure
+
+| Component | Name | Internal IP |
+|------------|--------|------------|
+| Jenkins Server | securebank-jenkins-vm | 10.10.0.3 |
+| Ansible Server | securebank-ansible-vm | 10.10.0.2 |
+| Docker Server | securebank-docker-vm | 10.10.0.5 |
+| Monitoring Server | securebank-monitoring-vm | 10.10.0.4 |
+| VPC | securebank-vpc | - |
+| Subnet | securebank-subnet | 10.10.0.0/24 |
+
+---
+
+# Terraform Project Structure
+
+```text
+GKE-TERRAFORM/
+│
+├── 01-provider.tf
+├── 02-apis.tf
+├── 03-variables.tf
+├── 04-network.tf
+├── 05-cluster.tf
+├── 06-node-pool.tf
+├── 07-outputs.tf
+├── terraform.tfvars
+└── terraform-key.json
+```
+
+---
+
+# Prerequisites
+
+## Install Terraform
+
+Verify installation:
+
+```bash
+terraform -version
+```
+
+Expected Output:
+
+```bash
+Terraform v1.x.x
+```
+
+---
+
+## Install Google Cloud SDK
+
+Verify installation:
+
+```bash
+gcloud version
+```
+
+---
+
+## Authenticate
+
+```bash
+gcloud auth login
+```
+
+Set project:
+
+```bash
+gcloud config set project securebankid
+```
+
+---
+
+# Required APIs
+
+Terraform enables the following APIs:
+
+```text
+container.googleapis.com
+compute.googleapis.com
+logging.googleapis.com
+monitoring.googleapis.com
+```
+
+Manual Verification:
+
+```bash
+gcloud services list --enabled
+```
+
+---
+
+# Verify Existing Network
+
+Check VPC:
+
+```bash
+gcloud compute networks list
+```
+
+Expected:
+
+```text
+securebank-vpc
+```
+
+---
+
+Check Subnet:
+
+```bash
+gcloud compute networks subnets list
+```
+
+Expected:
+
+```text
+securebank-subnet
+10.10.0.0/24
+us-central1
+```
+
+---
+
+# Verify Secondary Ranges
+
+GKE requires secondary IP ranges.
+
+Check:
+
+```bash
+gcloud compute networks subnets describe securebank-subnet \
+--region us-central1
+```
+
+Look for:
+
+```yaml
+secondaryIpRanges:
+- rangeName: gke-pods
+- rangeName: gke-services
+```
+
+---
+
+# Add Secondary Ranges (If Missing)
+
+```bash
+gcloud compute networks subnets update securebank-subnet \
+--region us-central1 \
+--add-secondary-ranges=gke-pods=10.20.0.0/16,gke-services=10.30.0.0/20
+```
+
+Verify again:
+
+```bash
+gcloud compute networks subnets describe securebank-subnet \
+--region us-central1
+```
+
+---
+
+# Initialize Terraform
+
+Navigate to project directory:
+
+```bash
+cd GKE-TERRAFORM
+```
+
+Initialize:
+
+```bash
+terraform init
+```
+
+Expected:
+
+```bash
+Terraform has been successfully initialized
+```
+
+---
+
+# Validate Configuration
+
+```bash
+terraform validate
+```
+
+Expected:
+
+```bash
+Success! The configuration is valid.
+```
+
+---
+
+# Review Execution Plan
+
+```bash
+terraform plan
+```
+
+Expected Resources:
+
+```text
+google_container_cluster
+google_container_node_pool
+google_project_service.container
+google_project_service.compute
+google_project_service.logging
+google_project_service.monitoring
+```
+
+---
+
+# Deploy GKE Cluster
+
+```bash
+terraform apply -auto-approve
+```
+
+Deployment Time:
+
+```text
+10-15 Minutes
+```
+
+---
+
+# Verify GKE Cluster
+
+List clusters:
+
+```bash
+gcloud container clusters list
+```
+
+Expected:
+
+```text
+securebank-gke
+```
+
+---
+
+# Connect To Cluster
+
+```bash
+gcloud container clusters get-credentials securebank-gke \
+--zone us-central1-a \
+--project securebankid
+```
+
+---
+
+# Verify Nodes
+
+```bash
+kubectl get nodes
+```
+
+Expected:
+
+```text
+NAME                  STATUS   ROLES
+gke-node-1            Ready
+gke-node-2            Ready
+```
+
+---
+
+# Verify System Pods
+
+```bash
+kubectl get pods -A
+```
+
+Expected:
+
+```text
+kube-system pods running
+```
+
+---
+
+# Future SecureBank Deployment Flow
+
+```text
+Developer
+    |
+    v
+GitHub Repository
+    |
+    v
+Jenkins CI/CD
+    |
+    v
+Docker Build
+    |
+    v
+Docker Hub
+    |
+    v
+Ansible Automation
+    |
+    v
+GKE Cluster
+    |
+    v
+Banking Application
+    |
+    v
+Prometheus
+    |
+    v
+Grafana
+```
+
+---
+
+# Useful Commands
+
+## Cluster Information
+
+```bash
+kubectl cluster-info
+```
+
+---
+
+## Get Nodes
+
+```bash
+kubectl get nodes
+```
+
+---
+
+## Get All Resources
+
+```bash
+kubectl get all -A
+```
+
+---
+
+## Check Node Pools
+
+```bash
+gcloud container node-pools list \
+--cluster securebank-gke \
+--zone us-central1-a
+```
+
+---
+
+## Destroy Infrastructure
+
+```bash
+terraform destroy -auto-approve
+```
+
+---
+
+# SecureBank GKE Architecture
+
+```text
+                +------------------+
+                |     GitHub       |
+                +------------------+
+                          |
+                          v
+                +------------------+
+                |     Jenkins      |
+                +------------------+
+                          |
+                          v
+                +------------------+
+                |     Docker       |
+                +------------------+
+                          |
+                          v
+                +------------------+
+                |     Ansible      |
+                +------------------+
+                          |
+                          v
+        +----------------------------------+
+        |        GKE Cluster               |
+        |                                  |
+        |  Node-1       Node-2             |
+        |                                  |
+        +----------------------------------+
+                          |
+                          v
+                +------------------+
+                | SecureBank App   |
+                +------------------+
+                          |
+                          v
+          +-------------------------------+
+          | Prometheus + Grafana          |
+          +-------------------------------+
+```
+
+---
+
+# Deployment Status
+
+✅ Existing SecureBank Infrastructure Ready
+
+✅ Terraform Configuration Ready
+
+✅ GKE Deployment Ready
+
+✅ CI/CD Integration Ready
+
+⏳ Banking Application Deployment
+
+⏳ Ingress Configuration
+
+⏳ Monitoring Deployment
+
+⏳ Production Release
+````
