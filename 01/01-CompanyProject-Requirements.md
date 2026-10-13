@@ -45,10 +45,8 @@ Rather than a single stack list, here is what each layer uses and why.
 | CI/CD engine | Jenkins + shared libraries | Reusable build/test/deploy pipelines |
 | Backend build | Maven | Compile & package the Java services |
 | Frontend build | npm | Build the React apps |
-| Artifacts | JFrog Artifactory | Store build artifacts and Docker images |
 | Containers | Docker | Package each service as an image |
 | Orchestration | Kubernetes (GKE) | Run and scale the containers |
-| Deployment | Helm | Template and release apps onto GKE |
 | Code quality | SonarQube | Static analysis / quality gates in the pipeline |
 | Database | Cloud SQL (MySQL) | Managed relational data store |
 | Monitoring | Prometheus + Grafana | Collect metrics, dashboards, alerts |
