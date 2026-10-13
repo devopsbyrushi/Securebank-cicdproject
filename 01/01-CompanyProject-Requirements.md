@@ -143,8 +143,8 @@ A typical run moves a change through these stages:
 
 ```
  Checkout ─► Build ─► Code Scan ─► Package ─► Publish ─► Provision ─► Deploy ─► Verify
- (GitHub)   (Maven/  (SonarQube  (Docker    (JFrog     (Terraform   (Helm →   (Prometheus
-             npm)     gate)       image)     Artifactory) + Ansible)  GKE)      + Grafana)
+ (GitHub)   (Maven/  (SonarQube  (Docker    (    (Terraform   ( →   (Prometheus
+             npm)     gate)       image)     + Ansible)  GKE)      + Grafana)
 ```
 
 1. **Checkout** the service source from GitHub.
