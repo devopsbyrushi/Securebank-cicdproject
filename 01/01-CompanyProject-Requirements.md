@@ -26,9 +26,7 @@ A few decisions were locked in up front and shape everything else:
   described in Terraform and version-controlled.
 - **Clean separation of concerns:** application code and infrastructure/config
   code live in different repositories and have different owners.
-- **Database is IaC-only:** the managed MySQL database is created and changed
-  exclusively through Terraform; configuration tooling (Ansible) is deliberately
-  kept away from it.
+
 - **Reviewed changes only:** the `main` branch of every repo is protected, so
   nothing merges without review.
 
