@@ -1,4 +1,5 @@
-project_id = "securebankid"
+# project_id = "securebankid"
+project_id = "august2027"
 
 region = "us-central1"
 zone   = "us-central1-a"
